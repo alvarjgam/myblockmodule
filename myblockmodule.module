@@ -1,0 +1,141 @@
+<?php
+/**
+ * Declare what blocks are provided by this module.
+ * Implements hook_block_info().
+ */
+function myblockmodule_block_info(){
+    $block['marty_countdown'] = array(
+        'info' => t('Marty Countdown'),
+        'cache' => DRUPAL_NO_CACHE,
+    );
+    return $block;
+}
+
+/**
+ * Define what our block is going to look like.
+ * Implements hook_block_view().
+ */
+function myblockmodule_block_view($block_key){
+    $block = array();
+//Vamos a obtener los valores	
+global $user;
+$uid=$user->uid;
+
+$pid=db_query("select pid from profile where uid='$uid';")->fetchField();
+
+$equipo=db_query("select field_equipo_de_trabajo_target_id from field_data_field_equipo_de_trabajo where entity_id='$pid';")->fetchField();
+
+$num_equipo=db_query("select field_numero_equipo_value from field_data_field_numero_equipo where entity_id='$equipo';")->fetchField();
+
+$i = 0;
+$base_faccli = 0;
+$cuota_faccli = 0;
+$saldo_acreedor = 0;
+$saldo_deudor = 0;
+$contado = 0;
+
+//Obtenemos todas las facturas de clientes.
+      
+	$results = db_select('field_data_field_num_equip_faccli', 'n')
+			->fields('n', array('entity_id'))
+			->condition('field_num_equip_faccli_value', $num_equipo)				
+			->execute();
+	foreach ($results as $result){
+    $entity_id[] = $result->entity_id;
+	}
+	$contado = count($entity_id);
+	//Base
+	$i=0;
+	while ($i<$contado) {
+	$results = db_select('field_data_field_base_faccli', 'n')
+			->fields('n', array('field_base_faccli_value'))
+			->condition('entity_id', $entity_id[$i])				
+			->execute();
+	$i+=1;
+	foreach ($results as $result){
+	$base_faccli = $base_faccli + $result->field_base_faccli_value;
+	}
+	}
+	//Cuota
+	$i=0;
+	while ($i<$contado) {
+	$results = db_select('field_data_field_cuota_faccli', 'n')
+			->fields('n', array('field_cuota_faccli_value'))
+			->condition('entity_id', $entity_id[$i])				
+			->execute();
+	$i+=1;
+	foreach ($results as $result){
+	$cuota_faccli = $cuota_faccli + $result->field_cuota_faccli_value;
+	}
+	}
+	$i=0;
+	//Total
+	$total_faccli = $base_faccli + $cuota_faccli;
+	//-----------------------------------------------------------------
+	//Obtenemos el saldo actual del equipo.
+	$results = db_select('field_data_field_num_equip_saldo', 'n')
+			->fields('n', array('entity_id'))
+			->condition('field_num_equip_saldo_value', $num_equipo)				
+			->execute();
+	foreach ($results as $result){
+    $entity_id_pre[] = $result->entity_id;
+	}
+	$contado = count($entity_id_pre);
+	//Buscamos saldos con fecha 2016
+	$i=0;
+	while ($i<$contado) {
+	$results = db_select('field_data_field_fech_saldo', 'n')
+			->fields('n', array('entity_id'))
+			->condition('entity_id', $entity_id_pre[$i])
+			->condition('field_fech_saldo_value', 2016)				
+			->execute();
+	$i+=1;
+	foreach ($results as $result){
+    $entity_id[] = $result->entity_id;
+	}
+	}
+	$contado = count($entity_id);
+	//Saldo acreedor
+	$i=0;
+	while ($i<$contado) {
+	$results = db_select('field_data_field_saldo_acreedor', 'n')
+			->fields('n', array('field_saldo_acreedor_value'))
+			->condition('entity_id', $entity_id[$i])				
+			->execute();
+	$i+=1;
+	foreach ($results as $result){
+	$saldo_acreedor = $saldo_acreedor + $result->field_saldo_acreedor_value;
+	}
+	}
+	//Saldo deudor
+	$i=0;
+	while ($i<$contado) {
+	$results = db_select('field_data_field_saldo_deudor', 'n')
+			->fields('n', array('field_saldo_deudor_value'))
+			->condition('entity_id', $entity_id[$i])				
+			->execute();
+	$i+=1;
+	foreach ($results as $result){
+	$saldo_deudor = $saldo_deudor + $result->field_saldo_deudor_value;
+	}
+	}
+	$saldo_total = $saldo_acreedor - $saldo_deudor;
+	
+	$posicion = $saldo_total + $base_faccli;
+/////
+    if($block_key == 'marty_countdown'){ //We only want to define the content of OUR block
+        //This is the title of the block.
+        $block['subject'] = t('Posición global');
+
+        //Define the block content.
+        $block['content'] = "<h4 style=\"font-weight:bold;\" align=\"left\">Posición global de su equipo de trabajo: {$saldo_total} + {$base_faccli} = {$posicion} <br><br></h4>
+		<h4 style=\"font-weight:bold;\" align=\"left\">Saldo actual del equipo = {$saldo_total}: </h4>
+		<h4 style=\"font-weight:bold;\" align=\"left\">Facturas pendientes de cobro: </h4>
+		<h4 style=\"font-weight:bold;\" align=\"center\">BASE: {$base_faccli}<br></h4> <h4 style=\"font-weight:bold;\" align=\"center\">CUOTA: {$cuota_faccli}<br></h4>
+		<h4 style=\"font-weight:bold;\" align=\"center\">TOTAL: {$total_faccli}<br><br></h4>	";
+		$block['style'] ='background: whitesmoke;';
+    }
+
+    return $block;
+}
+
