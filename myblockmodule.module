@@ -34,7 +34,7 @@ $saldo_acreedor = 0;
 $saldo_deudor = 0;
 $contado = 0;
 
-//Obtenemos todas las facturas de clientes.
+//Obtenemos todas las facturas de clientes para calcular el total.
       
 	$results = db_select('field_data_field_num_equip_faccli', 'n')
 			->fields('n', array('entity_id'))
@@ -75,7 +75,7 @@ $contado = 0;
 	//Obtenemos el saldo actual del equipo.
 	//En primer lugar obtenemos todos los saldos de proyectos del equipo del usuario.
 	//Después, de estos saldos extraemos los que son del año actual.
-	//Por último se seleccionan solo los que son nuevos.
+	//Por último se seleccionan solo los que son actuales.
 	$results = db_select('field_data_field_num_equip_saldo', 'n')
 			->fields('n', array('entity_id'))
 			->condition('field_num_equip_saldo_value', $num_equipo)				
@@ -98,7 +98,7 @@ $contado = 0;
 	}
 	}
 	$contado = count($entity_id_actual);
-	//#####
+	//Se escogen solo los saldos actuales (workflow valor = 24)
 	$i=0;
 	while ($i<$contado) {
 	$results = db_select('field_data_field_workflow_saldo', 'n')
@@ -112,7 +112,7 @@ $contado = 0;
 	}
 	}
 	$contado = count($entity_id);
-	//#####
+	
 	//Saldo acreedor
 	$i=0;
 	while ($i<$contado) {
